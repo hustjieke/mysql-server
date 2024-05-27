@@ -18,7 +18,9 @@
 
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA */
+   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA.
+
+   Copyright (c) 2023, Shannon Data AI and/or its affiliates.*/
 
 /**
   @file sql/sql_tmp_table.cc
@@ -1944,7 +1946,10 @@ TABLE *create_tmp_table_from_fields(THD *thd, List<Create_field> &field_list,
   table->init_tmp_table(thd, share, m_root, nullptr, alias, reg_field,
                         blob_field, is_virtual);
 
-  /* Create all fields and calculate the total length of record */
+  /* Create all fields and calculate the total length of record.
+      we dont add the ghost column to temp table. and the field is only make by result
+    field, therefore it should not be ghost field anytime.
+  */
   List_iterator_fast<Create_field> it(field_list);
   uint idx = 0;
   while ((cdef = it++)) {

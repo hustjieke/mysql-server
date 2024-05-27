@@ -20,7 +20,9 @@ for more details.
 
 You should have received a copy of the GNU General Public License along with
 this program; if not, write to the Free Software Foundation, Inc.,
-51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
+51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA.
+
+Copyright (c) 2023, Shannon Data AI and/or its affiliates.
 
 *****************************************************************************/
 
@@ -573,7 +575,7 @@ static void row_mysql_convert_row_to_innobase(
     bool is_multi_val = false;
 
     templ = prebuilt->mysql_template + i;
-
+    if (templ->mysql_type == MYSQL_TYPE_DB_TRX_ID) continue; //ghost col.
     if (templ->is_virtual) {
       ut_ad(n_v_col < dtuple_get_n_v_fields(row));
       dfield = dtuple_get_nth_v_field(row, n_v_col);

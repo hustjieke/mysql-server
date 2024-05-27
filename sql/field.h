@@ -21,7 +21,9 @@
 
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA */
+   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA.
+   Copyright (c) 2023, Shannon Data AI and/or its affiliates.
+*/
 
 #include <assert.h>
 #include <limits.h>
@@ -95,6 +97,7 @@ class Field_timestamp;
 class Field_tiny;
 class Field_varstring;
 class Field_year;
+class Field_sys_trx_id;
 class Item;
 class Item_field;
 class Json_array;
@@ -138,6 +141,7 @@ Field (abstract)
 |  +--Field_medium
 |  +--Field_long
 |  +--Field_longlong
+|     +-- Field_sys_trx_id
 |  +--Field_tiny
 |     +--Field_year
 |
@@ -4516,6 +4520,46 @@ class Field_bit_as_char final : public Field_bit {
   Field_bit_as_char *clone(MEM_ROOT *mem_root) const final {
     return new (mem_root) Field_bit_as_char(*this);
   }
+};
+
+/**
+ Field_sys_trx_id represented as an system column DB_TRX_ID  used for getting
+ trx_id value from innodb to SQL.
+ * */
+class Field_sys_trx_id : public Field_longlong {
+ public:
+  using Field_longlong::store;
+  static const int PACK_LENGTH_TRX_ID = MAX_DB_TRX_ID_WIDTH;
+
+  Field_sys_trx_id(uchar *ptr_arg, uint32 len_arg)
+      : Field_longlong(ptr_arg, len_arg, nullptr, 0, 0, "DB_TRX_ID", 0, false)
+  {
+    stored_in_db = false;
+    set_hidden(dd::Column::enum_hidden_type::HT_HIDDEN_SE);
+    set_column_format(COLUMN_FORMAT_TYPE_DEFAULT);
+    set_flag(NO_DEFAULT_VALUE_FLAG);
+    stored_in_db = true;
+  }
+  Field_sys_trx_id(uint32 len_arg, bool is_nullable_arg,
+                   const char *field_name_arg, bool unsigned_arg)
+      : Field_longlong(nullptr, len_arg, is_nullable_arg ? &dummy_null_buffer : nullptr,
+		      0, 0, field_name_arg, 0, unsigned_arg)
+  {
+    stored_in_db = false;
+    set_hidden(dd::Column::enum_hidden_type::HT_HIDDEN_SE);
+    set_column_format(COLUMN_FORMAT_TYPE_DEFAULT);
+    set_flag(NO_DEFAULT_VALUE_FLAG);
+    stored_in_db = true;
+  }
+  type_conversion_status store(longlong nr, bool unsigned_val) final;
+  enum_field_types type() const final { return MYSQL_TYPE_DB_TRX_ID; }
+  uint32 pack_length() const final { return PACK_LENGTH_TRX_ID; }
+  void sql_type(String &str) const final;
+  Field_sys_trx_id *clone(MEM_ROOT *mem_root) const final {
+    assert(type() == MYSQL_TYPE_DB_TRX_ID);
+    return new (mem_root) Field_sys_trx_id(*this);
+  }
+  longlong val_int() const final;
 };
 
 /// This function should only be called from legacy code.

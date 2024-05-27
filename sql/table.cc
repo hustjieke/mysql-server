@@ -2946,6 +2946,7 @@ int open_table_from_share(THD *thd, TABLE_SHARE *share, const char *alias,
   if ((db_stat & HA_OPEN_KEYFILE) || (prgflag & DELAYED_OPEN)) records = 1;
   if (prgflag & (READ_ALL + EXTRA_RECORD)) records++;
 
+  //in find_record_length(), MAX_DB_TRX_ID_WIDTH is already added.
   record = root->ArrayAlloc<uchar>(share->rec_buff_length * records +
                                    share->null_bytes);
   if (record == nullptr) goto err; /* purecov: inspected */
@@ -2964,7 +2965,8 @@ int open_table_from_share(THD *thd, TABLE_SHARE *share, const char *alias,
   outparam->null_flags_saved = record + (records * share->rec_buff_length);
   memset(outparam->null_flags_saved, '\0', share->null_bytes);
 
-  if (!(field_ptr = root->ArrayAlloc<Field *>(share->fields + 1)))
+  //Here we need an extra space to store 'ghost' column from table_share.
+  if (!(field_ptr = root->ArrayAlloc<Field *>(share->fields + 1 + 1)))
     goto err; /* purecov: inspected */
 
   outparam->field = field_ptr;
@@ -2986,8 +2988,9 @@ int open_table_from_share(THD *thd, TABLE_SHARE *share, const char *alias,
                 (internal_tmp ? 2 * share->rec_buff_length : 0);
 
   /* Setup copy of fields from share, but use the right alias and record */
-  for (i = 0; i < share->fields; i++, field_ptr++) {
-    Field *new_field = share->field[i]->clone(root);
+  i = 0;
+  for (auto field = share->field; (*field); i++, field ++, field_ptr ++) {
+    Field *new_field = (*field)->clone(root);
     *field_ptr = new_field;
     if (new_field == nullptr) goto err;
     new_field->init(outparam);
@@ -5296,6 +5299,8 @@ Natural_join_column *Field_iterator_table_ref::get_or_create_column_ref(
   if (field_it == &table_field_it) {
     /* The field belongs to a stored table. */
     Field *tmp_field = table_field_it.field();
+    //make suure not ghost column. ???
+    assert(tmp_field->type() != MYSQL_TYPE_DB_TRX_ID);
     assert(table_ref == tmp_field->table->pos_in_table_list);
     Item_field *tmp_item = new Item_field(thd, &table_ref->query_block->context,
                                           table_ref, tmp_field);

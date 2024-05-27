@@ -9105,6 +9105,46 @@ void Field_bit_as_char::sql_type(String &res) const {
   res.length(length);
 }
 
+/****************************************************************************
+ Field type DB_TRX_ID (ulonglong bytes)
+****************************************************************************/
+// Invisible system field for getting innodb system column, DB_TRX_ID.
+
+type_conversion_status Field_sys_trx_id::store(longlong nr, bool unsigned_val)
+{
+  ASSERT_COLUMN_MARKED_FOR_WRITE;
+  type_conversion_status error = TYPE_OK;
+
+  if (nr < 0)  // Only possible error
+  {
+    /*
+      if field is unsigned and value is signed (< 0) or
+      if field is signed and value is unsigned we have an overflow
+    */
+    if (is_unsigned() != unsigned_val) {
+      nr = is_unsigned() ? (ulonglong)0 : (ulonglong)LLONG_MAX;
+      set_warning(Sql_condition::SL_WARNING, ER_WARN_DATA_OUT_OF_RANGE, 1);
+      error = TYPE_WARN_OUT_OF_RANGE;
+    }
+  }
+
+  if (table->s->db_low_byte_first)
+    int8store(ptr, nr);
+  else
+    longlongstore(ptr, nr);
+  return error;
+}
+void Field_sys_trx_id::sql_type(String &res) const {
+  integer_sql_type(this, "DB_TRX_ID", &res);
+}
+
+longlong Field_sys_trx_id::val_int() const {
+  if (table->s->db_low_byte_first)
+    return sint8korr(ptr);
+  else
+    return longlongget(ptr);
+}
+
 /*****************************************************************************
   Handling of field and Create_field
 *****************************************************************************/
@@ -9231,6 +9271,8 @@ size_t calc_pack_length(enum_field_types type, size_t length) {
     case MYSQL_TYPE_INVALID:
     case MYSQL_TYPE_TYPED_ARRAY:
       break;
+    case MYSQL_TYPE_DB_TRX_ID:
+      return 8; // db_trx_id pack length
   }
   assert(false);
   return 0;
@@ -9501,7 +9543,8 @@ Field *make_field(MEM_ROOT *mem_root, TABLE_SHARE *share, uchar *ptr,
                  : new (mem_root)
                        Field_bit(ptr, field_length, null_pos, null_bit, bit_ptr,
                                  bit_offset, auto_flags, field_name);
-
+    case MYSQL_TYPE_DB_TRX_ID:
+       return new (mem_root) Field_sys_trx_id(ptr, field_length);
     case MYSQL_TYPE_INVALID:
     case MYSQL_TYPE_BOOL:
     default:  // Impossible (Wrong version)

@@ -977,6 +977,7 @@ class Item : public Parse_tree_node {
       case MYSQL_TYPE_BOOL:
       case MYSQL_TYPE_BIT:
       case MYSQL_TYPE_YEAR:
+      case MYSQL_TYPE_DB_TRX_ID:
         return INT_RESULT;
       case MYSQL_TYPE_NEWDECIMAL:
       case MYSQL_TYPE_DECIMAL:
@@ -1068,6 +1069,8 @@ class Item : public Parse_tree_node {
       case MYSQL_TYPE_INVALID:
       case MYSQL_TYPE_TYPED_ARRAY:
         return MYSQL_TYPE_INVALID;
+      case MYSQL_TYPE_DB_TRX_ID:
+        return MYSQL_TYPE_DB_TRX_ID;
     }
     assert(false);
     return MYSQL_TYPE_NULL;

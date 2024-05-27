@@ -70,6 +70,7 @@ enum class enum_column_types {
   TIMESTAMP2,
   DATETIME2,
   TIME2,
+  DB_TRX_ID, // TODO(gry): more than shannonbase
   NEWDECIMAL,
   ENUM,
   SET,

@@ -18,7 +18,9 @@
 
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA */
+   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA.
+
+   Copyright (c) 2023, Shannon Data AI and/or its affiliates. */
 
 #include "sql/dd_table_share.h"
 
@@ -51,8 +53,11 @@
 #include "mysql_com.h"
 #include "mysqld_error.h"
 #include "sql/dd/collection.h"
+#include "sql/create_field.h"      //create_field
 #include "sql/dd/dd_table.h"       // dd::FIELD_NAME_SEPARATOR_CHAR
 #include "sql/dd/dd_tablespace.h"  // dd::get_tablespace_name
+#include "sql/dd/dictionary.h"
+#include "sql/dd/dd.h"             // dd::get_dictionary
 // TODO: Avoid exposing dd/impl headers in public files.
 #include "sql/dd/impl/utils.h"  // dd::eat_str
 #include "sql/dd/properties.h"  // dd::Properties
@@ -67,6 +72,7 @@
 #include "sql/dd/types/partition.h"            // dd::Partition
 #include "sql/dd/types/partition_value.h"      // dd::Partition_value
 #include "sql/dd/types/table.h"                // dd::Table
+#include "sql/dd/upgrade_57/upgrade.h"
 #include "sql/default_values.h"  // prepare_default_value_buffer...
 #include "sql/error_handler.h"   // Internal_error_handler
 #include "sql/field.h"
@@ -154,6 +160,9 @@ enum_field_types dd_get_old_field_type(dd::enum_column_types type) {
 
     case dd::enum_column_types::TIME2:
       return MYSQL_TYPE_TIME2;
+
+    case dd::enum_column_types::DB_TRX_ID: // TODO(gry): more than shannonbase
+      return MYSQL_TYPE_DB_TRX_ID;
 
     case dd::enum_column_types::NEWDECIMAL:
       return MYSQL_TYPE_NEWDECIMAL;
@@ -357,6 +366,7 @@ static bool prepare_share(THD *thd, TABLE_SHARE *share,
         }
 
         Field *field = key_part->field;
+        assert(field->type() != MYSQL_TYPE_DB_TRX_ID);
 
         key_part->type = field->key_type();
         if (field->is_nullable()) {
@@ -1106,12 +1116,17 @@ static bool fill_column_from_dd(THD *thd, TABLE_SHARE *share,
 /**
   Populate TABLE_SHARE::field array according to column metadata
   from dd::Table object.
+  Here, in order to getting trx_id from innodb to MySQL, we add a
+  new extra column named 'DB_TRX_ID' to table definition at the last postion,
+  and this field will be used to build a row_template_t in build_template().
+  This field is invisible to user, we can not see it by selection statement.
+  It's a 'ghost' column in table's defintion.
 */
 
 static bool fill_columns_from_dd(THD *thd, TABLE_SHARE *share,
                                  const dd::Table *tab_obj) {
-  // Allocate space for fields in TABLE_SHARE.
-  const uint fields_size = ((share->fields + 1) * sizeof(Field *));
+  // Allocate space for fields in TABLE_SHARE. Adds one extra field.
+  const uint fields_size = ((share->fields + 1 + 1) * sizeof(Field *));
   share->field = (Field **)share->mem_root.Alloc((uint)fields_size);
   memset(share->field, 0, fields_size);
   share->vfields = 0;
@@ -1196,10 +1211,29 @@ static bool fill_columns_from_dd(THD *thd, TABLE_SHARE *share,
     }
   }
 
+  assert(share->fields == field_nr);
+
+  bool is_in_upgrade = dd::upgrade_57::in_progress();
+  bool is_system_objs = is_system_object(share->db.str, share->table_name.str);
+  /*we dont add the extra file for system table or in upgrading phase.*/
+  if (!is_in_upgrade && !is_system_objs){
+    Create_field db_trx_id_field;
+    db_trx_id_field.sql_type = MYSQL_TYPE_DB_TRX_ID;
+    db_trx_id_field.is_nullable = db_trx_id_field.is_zerofill = false;
+    db_trx_id_field.is_unsigned = true;
+    Field *sys_trx_id_field = make_field(db_trx_id_field, share, "DB_TRX_ID",
+                                                    MAX_DB_TRX_ID_WIDTH, rec_pos, null_pos, 0);
+    sys_trx_id_field->set_field_index(field_nr);
+    share->field[field_nr] = sys_trx_id_field;
+    assert (sys_trx_id_field->pack_length_in_rec() == MAX_DB_TRX_ID_WIDTH);
+    //rec_pos += share->field[field_nr]->pack_length_in_rec();
+    field_nr++;
+    assert(share->fields + 1 == field_nr);
+  }
+
   // Make sure the scan of the columns is consistent with other data.
   assert(share->null_bytes == (null_pos - null_flags + (null_bit_pos + 7) / 8));
   assert(share->last_null_bit_pos == null_bit_pos);
-  assert(share->fields == field_nr);
 
   return (false);
 }
@@ -1221,6 +1255,7 @@ static void fill_index_element_from_dd(TABLE_SHARE *share,
   // field
   assert(keypart->fieldnr > 0);
   Field *field = keypart->field = share->field[keypart->fieldnr - 1];
+  assert(field->type() != MYSQL_TYPE_DB_TRX_ID);
 
   // offset
   keypart->offset = field->offset(share->default_values);

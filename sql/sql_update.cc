@@ -18,7 +18,8 @@
 
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA */
+   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
+   Copyright (c) 2023, Shannon Data AI and/or its affiliates. */
 
 // Handle UPDATE queries (both single- and multi-table).
 
@@ -262,6 +263,8 @@ bool compare_records(const TABLE *table) {
     */
     for (Field **ptr = table->field; *ptr != nullptr; ptr++) {
       Field *field = *ptr;
+      // skip ghost column.
+      if(field && field->type() == MYSQL_TYPE_DB_TRX_ID) continue;
       if (bitmap_is_set(table->write_set, field->field_index())) {
         if (field->is_nullable()) {
           uchar null_byte_index = field->null_offset();
@@ -290,6 +293,8 @@ bool compare_records(const TABLE *table) {
     return true;  // Diff in NULL value
   /* Compare updated fields */
   for (Field **ptr = table->field; *ptr; ptr++) {
+    // skip ghost column.
+    if ((*ptr) && (*ptr)->type() == MYSQL_TYPE_DB_TRX_ID) continue;
     if (bitmap_is_set(table->write_set, (*ptr)->field_index()) &&
         (*ptr)->cmp_binary_offset(table->s->rec_buff_length))
       return true;

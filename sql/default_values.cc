@@ -18,7 +18,9 @@
 
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA */
+   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
+
+   Copyright (c) 2023, Shannon Data AI and/or its affiliates. */
 
 #include "sql/default_values.h"
 
@@ -140,6 +142,9 @@ static bool find_record_length(const dd::Table &table, size_t min_length,
 
   // Hack to avoid bugs with small static rows in MySQL.
   share->reclength = std::max<size_t>(min_length, share->reclength);
+  // Here, due to we need an extra space to store ghost column, db_trx_id length
+  // therefore, 'MAX_DB_TRX_ID_WIDTH' is added.
+  share->reclength += calc_pack_length(MYSQL_TYPE_DB_TRX_ID, 0);
   share->stored_rec_length = share->reclength;
 
   return false;

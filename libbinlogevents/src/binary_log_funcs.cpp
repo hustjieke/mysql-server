@@ -133,6 +133,7 @@ unsigned int max_display_length_for_field(enum_field_types sql_type,
       return 11;
 
     case MYSQL_TYPE_LONGLONG:
+    case MYSQL_TYPE_DB_TRX_ID: // TODO(gry): more than shannonbase
       return 20;
 
     case MYSQL_TYPE_NULL:
@@ -266,6 +267,7 @@ uint32_t calc_field_size(unsigned char col, const unsigned char *master_data,
       length = 4;
       break;
     case MYSQL_TYPE_LONGLONG:
+    case MYSQL_TYPE_DB_TRX_ID: // TODO(gry): more than shannobase
       length = 8;
       break;
     case MYSQL_TYPE_NULL:

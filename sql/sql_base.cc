@@ -18,7 +18,9 @@
 
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA */
+   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA.
+   
+   Copyright (c) 2023, Shannon Data AI and/or its affiliates.*/
 
 /* Basic functions needed by many modules */
 
@@ -8470,6 +8472,9 @@ static bool mark_common_columns(THD *thd, Table_ref *table_ref_1,
   *found_using_fields = 0;
 
   for (it_1.set(table_ref_1); !it_1.end_of_fields(); it_1.next()) {
+    //no ghost column firstly, not adding the logic in is_non_participant_column.
+    Field* fld1 = it_1.field();
+    if (fld1 && fld1->type() == MYSQL_TYPE_DB_TRX_ID) continue;
     bool found = false;
     const char *field_name_1;
     /* true if field_name_1 is a member of using_fields */
@@ -8493,6 +8498,9 @@ static bool mark_common_columns(THD *thd, Table_ref *table_ref_1,
     */
     nj_col_2 = nullptr;
     for (it_2.set(table_ref_2); !it_2.end_of_fields(); it_2.next()) {
+      //ghost column skip.
+      Field* fld2 = it_2.field();
+      if (fld2 && fld2->type() == MYSQL_TYPE_DB_TRX_ID) continue;
       Natural_join_column *cur_nj_col_2;
       const char *cur_field_name_2;
       if (!(cur_nj_col_2 = it_2.get_or_create_column_ref(thd, leaf_2)))
@@ -8689,6 +8697,9 @@ static bool store_natural_using_join_columns(THD *thd,
   /* Append the columns of the first join operand. */
   for (it_1.set(table_ref_1); !it_1.end_of_fields(); it_1.next()) {
     nj_col_1 = it_1.get_natural_column_ref();
+    //skip ghost column.
+    Field* fld1 = nj_col_1->field();
+    if (fld1 && fld1->type() == MYSQL_TYPE_DB_TRX_ID) continue;
     if (nj_col_1->is_common) {
       natural_using_join->join_columns->push_back(nj_col_1);
       /* Reset the common columns for the next call to mark_common_columns. */
@@ -8728,6 +8739,9 @@ static bool store_natural_using_join_columns(THD *thd,
   /* Append the non-equi-join columns of the second join operand. */
   for (it_2.set(table_ref_2); !it_2.end_of_fields(); it_2.next()) {
     nj_col_2 = it_2.get_natural_column_ref();
+    //skip ghost column.
+    Field* fld2 = nj_col_2->field();
+    if (fld2 && fld2->type() == MYSQL_TYPE_DB_TRX_ID) continue;
     if (!nj_col_2->is_common)
       non_join_columns->push_back(nj_col_2);
     else {
@@ -9415,6 +9429,8 @@ bool insert_fields(THD *thd, Query_block *query_block, const char *db_name,
     field_iterator.set(tables);
 
     for (; !field_iterator.end_of_fields(); field_iterator.next()) {
+      Field* field_ptr = field_iterator.field();
+      if (field_ptr&& field_ptr->type() == MYSQL_TYPE_DB_TRX_ID) continue;
       Item *const item = field_iterator.create_item(thd);
       if (!item) return true; /* purecov: inspected */
       assert(item->fixed);
@@ -9679,6 +9695,8 @@ static bool check_inserting_record(THD *thd, Field **ptr) {
   Field *field;
 
   while ((field = *ptr++) && !thd->is_error()) {
+    //skip ghost column.
+    if (field->type() ==MYSQL_TYPE_DB_TRX_ID) continue;
     if (bitmap_is_set(field->table->fields_set_during_insert,
                       field->field_index()) &&
         field->check_constraints(ER_BAD_NULL_ERROR) != TYPE_OK)
@@ -9787,6 +9805,8 @@ inline bool call_before_insert_triggers(THD *thd, TABLE *table,
                                         enum enum_trigger_event_type event,
                                         MY_BITMAP *insert_into_fields_bitmap) {
   for (Field **f = table->field; *f; ++f) {
+    //skip ghost column.
+    if ((*f)->type() == MYSQL_TYPE_DB_TRX_ID) continue;
     if ((*f)->is_flag_set(NO_DEFAULT_VALUE_FLAG) &&
         !bitmap_is_set(insert_into_fields_bitmap, (*f)->field_index())) {
       (*f)->set_tmp_null();

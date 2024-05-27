@@ -192,6 +192,9 @@ static int get_field_metadata_internal(Create_field &field, bool input,
       case MYSQL_TYPE_TYPED_ARRAY:
         *reinterpret_cast<uint64_t *>(value) = MYSQL_SP_ARG_TYPE_TYPED_ARRAY;
         break;
+      case MYSQL_TYPE_DB_TRX_ID: // TODO(gry): additional than shannon
+        *reinterpret_cast<uint64_t *>(value) = MYSQL_SP_ARG_TYPE_DB_TRX_ID;
+        break;
       case MYSQL_TYPE_INVALID:
         *reinterpret_cast<uint64_t *>(value) = MYSQL_SP_ARG_TYPE_INVALID;
         break;

@@ -18,7 +18,9 @@
 
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA */
+   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA.
+   
+   Copyright (c) 2023, Shannon Data AI and/or its affiliates.*/
 
 // SHOW TABLE, SHOW DATABASES, etc.
 
@@ -1393,6 +1395,8 @@ void mysqld_list_fields(THD *thd, Table_ref *table_list, const char *wild) {
 
   Field **ptr, *field;
   for (ptr = table->field; (field = *ptr); ptr++) {
+    //if it's `Field_sys_trx_id` do nothing.
+    if (field->type() == MYSQL_TYPE_DB_TRX_ID) continue;
     if (!wild || !wild[0] ||
         !wild_case_compare(system_charset_info, field->field_name, wild)) {
       Item *item;

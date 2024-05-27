@@ -18,7 +18,9 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA */
+  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA.
+  
+  Copyright (c) 2023, Shannon Data AI and/or its affiliates.*/
 
 /*
   Make sure to look at ha_tina.h for more details.
@@ -541,6 +543,8 @@ int ha_tina::encode_quote(uchar *) {
   buffer.length(0);
 
   for (Field **field = table->field; *field; field++) {
+    //skip ghost column.
+    if ((*field)->type() == MYSQL_TYPE_DB_TRX_ID) continue;
     const char *ptr;
     const char *end_ptr;
     const bool was_null = (*field)->is_null();
@@ -693,6 +697,8 @@ int ha_tina::find_current_row(uchar *buf) {
   */
 
   for (Field **field = table->field; *field; field++) {
+    //skip ghost column.
+    if ((*field)->type() == MYSQL_TYPE_DB_TRX_ID) continue;
     char curr_char;
 
     buffer.length(0);
@@ -1550,6 +1556,8 @@ int ha_tina::create(const char *name, TABLE *table_arg, HA_CREATE_INFO *,
     check columns
   */
   for (Field **field = table_arg->s->field; *field; field++) {
+    //skip ghost column.
+    if ((*field)->type() == MYSQL_TYPE_DB_TRX_ID) continue;
     if ((*field)->is_nullable()) {
       my_error(ER_CHECK_NOT_IMPLEMENTED, MYF(0), "nullable columns");
       return HA_ERR_UNSUPPORTED;

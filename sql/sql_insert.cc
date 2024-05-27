@@ -20,6 +20,7 @@
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
+   Copyright (c) 2023, Shannon Data AI and/or its affiliates.
 */
 
 /* Insert of records */
@@ -188,6 +189,8 @@ static bool check_insert_fields(THD *thd, Table_ref *table_list,
     if (check_grant_all_columns(thd, INSERT_ACL, &it)) return true;
 
     for (it.set(table_list); !it.end_of_fields(); it.next()) {
+      // ghost column skip.
+      if (it.field()->type() == MYSQL_TYPE_DB_TRX_ID) continue;
       if (it.field()->is_hidden()) continue;
       Item *item = it.create_item(thd);
       if (item == nullptr) return true;
@@ -310,6 +313,7 @@ bool validate_default_values_of_unset_fields(THD *thd, TABLE *table) {
   DBUG_TRACE;
 
   for (Field **field = table->field; *field; field++) {
+    if ((*field)->type() == MYSQL_TYPE_DB_TRX_ID) continue; /*ghost column*/
     if (!bitmap_is_set(write_set, (*field)->field_index()) &&
         !(*field)->is_flag_set(NO_DEFAULT_VALUE_FLAG)) {
       if ((*field)->validate_stored_val(thd) && thd->is_error()) return true;
@@ -2219,6 +2223,7 @@ bool check_that_all_fields_are_given_values(THD *thd, TABLE *entry,
   MY_BITMAP *write_set = entry->fields_set_during_insert;
 
   for (Field **field = entry->field; *field; field++) {
+    if ((*field)->type() == MYSQL_TYPE_DB_TRX_ID) continue; // ghost column.
     if (!bitmap_is_set(write_set, (*field)->field_index()) &&
         ((*field)->is_flag_set(NO_DEFAULT_VALUE_FLAG) &&
          ((*field)->m_default_val_expr == nullptr)) &&
@@ -2907,6 +2912,8 @@ bool Query_result_create::start_execution(THD *thd) {
   }
   /* Mark all fields that are given values */
   for (Field **f = table_fields; *f != nullptr; f++) {
+    // skip ghost column.
+    if ((*f)->type() == MYSQL_TYPE_DB_TRX_ID) continue;
     bitmap_set_bit(table->write_set, (*f)->field_index());
     bitmap_set_bit(table->fields_set_during_insert, (*f)->field_index());
   }

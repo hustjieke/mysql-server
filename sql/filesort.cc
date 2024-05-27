@@ -19,7 +19,8 @@
 
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA */
+   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
+  Copyright (c) 2023, Shannon Data AI and/or its affiliates.*/
 
 /**
   @file sql/filesort.cc
@@ -747,13 +748,18 @@ static void dbug_print_record(TABLE *table, bool print_rowid) {
   DBUG_LOCK_FILE;
 
   fprintf(DBUG_FILE, "record (");
-  for (pfield = table->field; *pfield; pfield++)
+  for (pfield = table->field; *pfield; pfield++) {
+     // skip ghost column.
+    if ((*pfield)->type() == MYSQL_TYPE_DB_TRX_ID) continue;
     fprintf(DBUG_FILE, "%s%s", (*pfield)->field_name, (pfield[1]) ? ", " : "");
+  }
   fprintf(DBUG_FILE, ") = ");
 
   fprintf(DBUG_FILE, "(");
   for (pfield = table->field; *pfield; pfield++) {
     Field *field = *pfield;
+    //skip the ghost column.
+    if (field->type() == MYSQL_TYPE_DB_TRX_ID) continue;
 
     if (field->is_null()) {
       if (fwrite("NULL", sizeof(char), 4, DBUG_FILE) != 4) {
@@ -2200,6 +2206,8 @@ bool SortWillBeOnRowId(const TABLE *table) {
 
   for (Field **pfield = table->field; *pfield != nullptr; ++pfield) {
     Field *field = *pfield;
+    // skip ghost column.
+    if (field && field->type() == MYSQL_TYPE_DB_TRX_ID) continue;
     if (!bitmap_is_set(&table->read_set_internal, field->field_index()))
       continue;
 
@@ -2289,6 +2297,8 @@ Addon_fields *Filesort::get_addon_fields(
     }
     for (Field **pfield = table->field; *pfield != nullptr; ++pfield) {
       Field *field = *pfield;
+      // skip ghost column.
+      if (field && field->type() == MYSQL_TYPE_DB_TRX_ID) continue;
       if (!bitmap_is_set(&table->read_set_internal, field->field_index()))
         continue;
 
@@ -2347,6 +2357,8 @@ Addon_fields *Filesort::get_addon_fields(
   for (const TABLE *table : tables) {
     for (Field **pfield = table->field; *pfield != nullptr; ++pfield) {
       Field *field = *pfield;
+      // skip ghost column.
+      if (field && field->type() ==MYSQL_TYPE_DB_TRX_ID) continue;
       if (!bitmap_is_set(&table->read_set_internal, field->field_index()))
         continue;
       assert(addonf != m_sort_param.addon_fields->end());

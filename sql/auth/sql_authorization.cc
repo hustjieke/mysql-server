@@ -18,7 +18,9 @@
 
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA */
+   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA.
+   
+   Copyright (c) 2023, Shannon Data AI and/or its affiliates.*/
 
 #include "sql/auth/sql_authorization.h"
 
@@ -4116,8 +4118,9 @@ bool check_grant_all_columns(THD *thd, ulong want_access_arg,
   if (!acl_cache_lock.lock()) return true;
 
   for (; !fields->end_of_fields(); fields->next()) {
-    // Skip invisible columns.
-    if (fields->field() != nullptr && fields->field()->is_hidden_by_user())
+    // Skip invisible columns. and ghost column
+    if (fields->field() != nullptr && (fields->field()->is_hidden_by_user() ||
+                                       fields->field()->type() == MYSQL_TYPE_DB_TRX_ID))
       continue;
 
     grant = fields->grant(); /* Get cached GRANT_INFO on field */

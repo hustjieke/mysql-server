@@ -48,6 +48,7 @@ inline bool is_integer_type(enum_field_types type) {
     case MYSQL_TYPE_INT24:
     case MYSQL_TYPE_LONG:
     case MYSQL_TYPE_LONGLONG:
+    case MYSQL_TYPE_DB_TRX_ID: // TODO(gry): more than shannonbase
       return true;
     default:
       return false;
@@ -72,6 +73,7 @@ inline bool is_numeric_type(enum_field_types type) {
     case MYSQL_TYPE_DOUBLE:
     case MYSQL_TYPE_DECIMAL:
     case MYSQL_TYPE_NEWDECIMAL:
+    case MYSQL_TYPE_DB_TRX_ID: // TODO(gry): more than shannonbase
       return true;
     default:
       return false;
@@ -212,6 +214,7 @@ inline bool has_signedess_information_type(enum_field_types type) {
     case MYSQL_TYPE_DOUBLE:
     case MYSQL_TYPE_DECIMAL:
     case MYSQL_TYPE_NEWDECIMAL:
+    case MYSQL_TYPE_DB_TRX_ID: // TODO(gry): more than shannonbase
       return true;
     default:
       return false;

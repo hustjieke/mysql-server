@@ -18,7 +18,9 @@
 
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA */
+   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA.
+   
+   Copyright (c) 2023, Shannon Data AI and/or its affiliates.*/
 
 #include "sql/dd/dd_table.h"
 
@@ -553,8 +555,8 @@ bool fill_dd_columns_from_create_fields(THD *thd, dd::Abstract_table *tab_obj,
   for (const Create_field &field : create_fields) {
     //
     // Add new DD column
-    //
-
+    //we dont add the ghost column to a new column.
+    if (field.sql_type == MYSQL_TYPE_DB_TRX_ID) continue;
     dd::Column *col_obj = tab_obj->add_column();
 
     col_obj->set_name(field.field_name);

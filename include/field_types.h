@@ -73,6 +73,7 @@ enum enum_field_types {
   MYSQL_TYPE_DATETIME2,   /**< Internal to MySQL. Not used in protocol */
   MYSQL_TYPE_TIME2,       /**< Internal to MySQL. Not used in protocol */
   MYSQL_TYPE_TYPED_ARRAY, /**< Used for replication only */
+  MYSQL_TYPE_DB_TRX_ID = 242, /**Internal to MySQL. Not used in protocol. Add by heatwave lovers */
   MYSQL_TYPE_INVALID = 243,
   MYSQL_TYPE_BOOL = 244, /**< Currently just a placeholder */
   MYSQL_TYPE_JSON = 245,

@@ -356,6 +356,7 @@ bool Create_field::init(
       allowed_type_modifier = AUTO_INCREMENT_FLAG;
       break;
     case MYSQL_TYPE_LONGLONG:
+    case MYSQL_TYPE_DB_TRX_ID: // TODO(gry): more than shannonbase
       if (!display_width_in_codepoints)
         m_max_display_width_in_codepoints = MAX_BIGINT_WIDTH;
       allowed_type_modifier = AUTO_INCREMENT_FLAG;

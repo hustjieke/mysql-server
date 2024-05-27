@@ -6832,6 +6832,7 @@ bool Item_func_get_user_var::propagate_type(THD *,
     case MYSQL_TYPE_INT24:
     case MYSQL_TYPE_LONG:
     case MYSQL_TYPE_LONGLONG:
+    case MYSQL_TYPE_DB_TRX_ID: // TODO(gry): more than shannonbase, need it here?
       set_data_type_longlong();
       unsigned_flag = type.m_unsigned_flag;
       break;

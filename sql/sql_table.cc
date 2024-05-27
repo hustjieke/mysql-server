@@ -11484,6 +11484,8 @@ bool Sql_cmd_secondary_load_unload::mysql_secondary_load_or_unload(
   // only the columns included in the read_set.
   bitmap_clear_all(table_list->table->read_set);
   for (Field **field = table_list->table->field; *field != nullptr; ++field) {
+    // skip the ghost column.
+    if ((*field)->type() == MYSQL_TYPE_DB_TRX_ID) continue;
     // Skip hidden generated columns.
     if (bitmap_is_set(&table_list->table->fields_for_functional_indexes,
                       (*field)->field_index()))
@@ -12010,6 +12012,8 @@ static bool fill_alter_inplace_info(THD *thd, TABLE *table,
   */
   uint old_field_index_without_vgc = 0;
   for (f_ptr = table->field; (field = *f_ptr); f_ptr++) {
+    // skip ghost column.
+    if(field->type() == MYSQL_TYPE_DB_TRX_ID) continue;
     DBUG_PRINT("inplace", ("Existing field: %s", field->field_name));
 
     /* Clear marker for renamed or dropped field
@@ -12604,6 +12608,8 @@ bool mysql_compare_tables(THD *thd, TABLE *table, Alter_info *alter_info,
   tmp_new_field_it.init(tmp_alter_info.create_list);
   for (Field **f_ptr = table->field; *f_ptr; f_ptr++) {
     Field *field = *f_ptr;
+    // skip ghost column.
+    if (field && field->type() == MYSQL_TYPE_DB_TRX_ID) continue;
     const Create_field *tmp_new_field = tmp_new_field_it++;
 
     /* Check to see if both fields are alike. */
@@ -14700,6 +14706,8 @@ bool prepare_fields_and_keys(THD *thd, const dd::Table *src_table, TABLE *table,
   */
   Field **f_ptr, *field;
   for (f_ptr = table->field; (field = *f_ptr); f_ptr++) {
+    // skip ghost column
+    if (field->type() == MYSQL_TYPE_DB_TRX_ID) continue;
     /* Check if field should be dropped */
     size_t i = 0;
     while (i < drop_list.size()) {
@@ -18501,6 +18509,8 @@ static int copy_data_between_tables(
   copy_end = copy;
   gen_fields_end = gen_fields;
   for (ptr = to->field; *ptr; ptr++) {
+    // skip ghost column.
+    if ((*ptr)->type() == MYSQL_TYPE_DB_TRX_ID) continue;
     def = it++;
     if ((*ptr)->is_gcol()) {
       /*

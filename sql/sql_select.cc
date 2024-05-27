@@ -18,7 +18,9 @@
 
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA */
+   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA.
+
+   Copyright (c) 2023, Shannon Data AI and/or its affiliates.*/
 
 /**
   @file sql/sql_select.cc
@@ -480,13 +482,13 @@ bool validate_use_secondary_engine(const LEX *lex) {
     }
     // If no specifc error could be generated so far,
     // we give out a generic one.
-    if (!thd->is_error()) {
+    if (thd->is_error()) {
       const char *err_msg =
           "use_secondary_engine is FORCED but query could not be executed in "
           "secondary engine";
       set_fail_reason_and_raise_error(lex, err_msg);
       return true;
-    }
+    } else return false;
   }
   return false;
 }
@@ -2173,6 +2175,8 @@ void calc_used_field_length(TABLE *table, bool needs_rowid,
 
   uneven_bit_fields = null_fields = blobs = fields = rec_length = 0;
   for (f_ptr = table->field; (field = *f_ptr); f_ptr++) {
+    // skip ghost column
+    if (field->type() == MYSQL_TYPE_DB_TRX_ID) continue;
     if (bitmap_is_set(read_set, field->field_index())) {
       fields++;
       rec_length += field->pack_length();

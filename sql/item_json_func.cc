@@ -1411,6 +1411,7 @@ bool sql_scalar_to_json(Item *arg, const char *calling_function, String *value,
     case MYSQL_TYPE_SHORT:
     case MYSQL_TYPE_TINY:
     case MYSQL_TYPE_LONGLONG:
+    case MYSQL_TYPE_DB_TRX_ID: // TODO(gry): more than shannonbase, really need it here?
     case MYSQL_TYPE_YEAR: {
       longlong i = arg->val_int();
       if (current_thd->is_error()) return true;
